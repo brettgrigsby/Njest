@@ -1,3 +1,4 @@
+const { Client } = require('pg')
 const transactions1 = require('./transactions-1.json')
 const transactions2 = require('./transactions-2.json')
 
@@ -11,6 +12,7 @@ const addresses = {
   'Spock': 'mvcyJMiAcSXKAEsQxbW9TYZ369rsMG6rVV',
 }
 
+const client = new Client()
 
 const sixConfs = tran => tran.confirmations >= 6
 const validCategory = tran => ['receive', 'generate'].includes(tran.category)
@@ -21,15 +23,6 @@ const txIds1 = transactions1.transactions.filter(sixConfs).map(t => t.txid)
 const txIds2 = transactions2.transactions.filter(sixConfs).map(t => t.txid)
 
 const intersection = txIds2.filter(t => txIds1.includes(t))
-// TODO: there exists an intersection of the transactions of length 12
-// (even after filtering the transactions for 6 confirmations)
-// so when adding to the db, I need to check if txid already exists
-// and update the transaction with new number of confirmations
-
-// const allTransactions = transactions1.transactions.concat(transactions2.transactions)
-
-// a crude way of seeing the actual balances
-// only works because dupe transactions are exactly the same
 const allTransactions = transactions1.transactions.concat(transactions2.transactions.filter(t => !intersection.includes(t.txid)))
 
 Object.keys(addresses).forEach(name => {
@@ -39,8 +32,36 @@ Object.keys(addresses).forEach(name => {
   console.log(`Deposited for ${name}: count=${validTransactions.length} sum=${validTransactions.reduce(sumAmount, 0)}`)
 })
 
-
 console.log('Deposited without reference: count=n sum=x.xxxxxxxx')
+
+const run = async () => {
+  try {
+    await client.connect()
+    console.log('connected!')
+  } catch (err) {
+    console.log('Error running node process: ', err)
+  }
+}
+
+run()
+
+
+
+
+
+
+
+// TODO: there exists an intersection of the transactions of length 12
+// (even after filtering the transactions for 6 confirmations)
+// so when adding to the db, I need to check if txid already exists
+// and update the transaction with new number of confirmations
+
+// const allTransactions = transactions1.transactions.concat(transactions2.transactions)
+
+
+// a crude way of seeing the actual balances
+// only works because dupe transactions are exactly the same
+
 // Smallest valid deposit: x.xxxxxxxx
 // Largest valid deposit: x.xxxxxxxx
 

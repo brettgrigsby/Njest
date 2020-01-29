@@ -40,9 +40,9 @@ const connectToDb = async () => {
 
 const TABLE_CREATION_SQL = `CREATE TABLE Transactions (
   id SERIAL PRIMARY KEY,
-  txid varchar(255),
-  address varchar(255),
-  category varchar(255),
+  txid varchar(64),
+  address varchar(64),
+  category varchar(64),
   confirmations integer,
   amount numeric
 );

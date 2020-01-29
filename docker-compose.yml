@@ -1,23 +1,20 @@
 version: "3"
+
 services:
   node:
     image: "node:12"
     container_name: "node"
-    environment:
-      PGDATABASE: kraken
-      PGUSER: user
-      PGPASSWORD: password
     working_dir: /home/node/app
     volumes:
       - ./:/home/node/app
     command: "npm start"
-  db:
+    depends_on:
+      - "postgres"
+  postgres:
     image: postgres
     container_name: "pg-db"
     restart: always
     environment:
-      POSTGRES_DB: kraken
+      POSTGRES_DB: transactions
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-    ports:
-      - 5432:5432

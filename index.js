@@ -2,7 +2,7 @@ const { Client } = require('pg')
 const transactions1 = require('./transactions-1.json')
 const transactions2 = require('./transactions-2.json')
 
-const addresses = {
+const KNOWN_ADDRESSES = {
   'Wesley Crusher': 'mvd6qFeVkqH6MNAS2Y2cLifbdaX5XUkbZJ',
   'Leonard McCoy': 'mmFFG4jqAtw9MoCC88hw5FNfreQWuEHADp',
   'Jonathan Archer': 'mzzg8fvHXydKs8j9D2a8t7KpSXpGgAnk4n',
@@ -12,20 +12,12 @@ const addresses = {
   'Spock': 'mvcyJMiAcSXKAEsQxbW9TYZ369rsMG6rVV',
 }
 
-const connectionString = 'postgresql://user:password@postgres:5432/transactions'
-
-// TODO
-// could be worth it to build the full set of transactions to send to the DB and filter out dupes
-// by txid AND VOUT before transacting with db (right now it's just txid)
-// actually, just txid may be good enough as the vouts for the same tx would always be together
 const txIds1 = transactions1.transactions.map(t => t.txid)
 const txIds2 = transactions2.transactions.map(t => t.txid)
 const intersection = txIds2.filter(t => txIds1.includes(t))
-// console.log({ intersection })
-
 const allTransactions = transactions1.transactions.concat(transactions2.transactions.filter(t => !intersection.includes(t.txid)))
-// const allTransactions = transactions1.transactions.concat(transactions2.transactions)
 
+const connectionString = 'postgresql://user:password@postgres:5432/transactions'
 let client
 const connectToDb = async () => {
   try {
@@ -88,14 +80,14 @@ const populateTransactionsTable = async (c, txs) => {
 const sumAmount = (acc, tx) => acc + parseFloat(tx.amount)
 
 const logDataForKnownUsers = async (c) => {
-  for (name of Object.keys(addresses)) {
-    const txs = await getValidTxsForAddress(client, addresses[name])
+  for (name of Object.keys(KNOWN_ADDRESSES)) {
+    const txs = await getValidTxsForAddress(client, KNOWN_ADDRESSES[name])
     console.log(`Deposited for ${name}: count=${txs.length} sum=${txs.reduce(sumAmount, 0)}`)
   }
 }
 
 const getValidTxsForUnknownUsers = async (c) => {
-  const formattedAddrs = Object.values(addresses).map(addr => `'${addr}'`).join(', ')
+  const formattedAddrs = Object.values(KNOWN_ADDRESSES).map(addr => `'${addr}'`).join(', ')
   const result = await c.query(`
     SELECT * from Transactions WHERE address NOT IN (${formattedAddrs})
     AND confirmations>=6

@@ -1,15 +1,22 @@
-### Valid Deposits
+## Njest
 
-There are 2 transactions in the data set that would qualify as unspendable because
-they fall below a reasonable dust limit for the time being. I chose not to filter those
-even though they cannot be spent as they are valid transactions and the dust limit will
-most likely change over time.
+A btc transaction ingester.
 
-both txs are for Montgomery Scott?
+### Considerations for valid transactions
 
-there are 12 intersecting txids from the 2 data sets. They are exactly the same in both
-sets so should not be recorded twice
+Beyond the obvious considerations we must make to require >=6 confirmations, there are a few
+other considerations I made to ensure transactions that contribute to a users balance are
+'valid':
 
+#### Intersecting txids
+
+There are 12 intersecting txids from the 2 data sets which would make sense if the `listsinceblock`
+intervals overlapped at all. All 12 of these transactions are completely identical which is odd,
+as you would assume that the `confimations` value would increase over time. This may be an arifact
+of manually created test data though. If confirmations did increase with subsequent calls, I would 
+add more logic to update the `confirmations` value in the db for detected intersections.
+
+txids:
 ```
 '8aa80d8d09ec01163984e214295c2177563aaba4a595267b8a2c0215be8b4d7d',
 'c828a14c948aadb71f4fd25e898bf4c147c6bfa4c26cf950d6026c536c855c9a'
@@ -25,15 +32,29 @@ sets so should not be recorded twice
 '5862934ea32180ea6d8ccc2de7a937568f94277a74c2c37be6596041806d1984'
 ```
 
-there are 2? transactions in the second set with the same txid but different vout values
-and so both transactions are valid
+#### Same txid Different vout
 
+There are 2 transactions in `transactions-2.json` with the same `txid` and `amount` but different
+`vout` values so both transactions, though odd, are valid.
+
+txid:
 ```
 'b1c7e3b67d128088c829c31a323c883a05bd9fa8b9a5a7bfd56d67c8579f6473'
 ```
 
-there is 1 'immature' coinbase transaction and 1 valid 'generate' coinbase transaction
-and the immature tx has been filtered out
+#### Coinbase Transactions
+
+There are 2 coinbase transactions, 1 'immature' and 1 'generate'. The sql queries to get
+valid transactions are all confined to `category IN ('recieve', 'generate')`.
 
 
-I turned off logging for the postgres db service in the docker-compose file
+#### Dust Limit
+
+There are a few transactions in the data set that are really small. 1 tx.amout `<` 1000 sats.
+I chose not to filter transactions for any minimum amount as the dust limit will fluctuate over
+time and 'unspendable' outputs may rise from the dust at some point in the future. 
+
+### Notes
+
+- There is no Dockerfile because I did not require one to satify the requirements.
+- I disabled logging for the postgres service

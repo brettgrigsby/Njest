@@ -14,32 +14,17 @@ const addresses = {
 
 const connectionString = 'postgresql://user:password@postgres:5432/transactions'
 
-const sixConfs = tx => tx.confirmations >= 6
-const validCategory = tx => ['receive', 'generate'].includes(tx.category)
-const sumAmount = (acc, tx) => acc + tx.amount
-// can function composition be used to keep these ideas seperate then combined to 1 filtering function
-const isValidTransaction = tx => tx.confirmations >= 6 && ['receive', 'generate'].includes(tx.category)
-
+// TODO
 // could be worth it to build the full set of transactions to send to the DB and filter out dupes
-// by txid and vout before transacting with db
-const txIds1 = transactions1.transactions.filter(sixConfs).map(t => t.txid)
-const txIds2 = transactions2.transactions.filter(sixConfs).map(t => t.txid)
-
+// by txid AND VOUT before transacting with db (right now it's just txid)
+// actually, just txid may be good enough as the vouts for the same tx would always be together
+const txIds1 = transactions1.transactions.map(t => t.txid)
+const txIds2 = transactions2.transactions.map(t => t.txid)
 const intersection = txIds2.filter(t => txIds1.includes(t))
 // console.log({ intersection })
 
-
 const allTransactions = transactions1.transactions.concat(transactions2.transactions.filter(t => !intersection.includes(t.txid)))
 // const allTransactions = transactions1.transactions.concat(transactions2.transactions)
-
-Object.keys(addresses).forEach(name => {
-  const addr = addresses[name]
-  const transactions = allTransactions.filter(tran => tran.address === addr)
-  const validTransactions = transactions.filter(isValidTransaction)
-  console.log(`Deposited for ${name}: count=${validTransactions.length} sum=${validTransactions.reduce(sumAmount, 0)}`)
-})
-
-console.log('Deposited without reference: count=n sum=x.xxxxxxxx')
 
 let client
 const connectToDb = async () => {
@@ -66,9 +51,18 @@ const TABLE_CREATION_SQL = `CREATE TABLE Transactions (
 const createTransactionsTable = async (c) => {
   const tableExists = await c.query(`SELECT to_regclass('public.Transactions');`)
   if (tableExists.rows[0].to_regclass) {
-    await c.query('DROP Table Transactions;')
+    await c.query('DROP TABLE Transactions;')
   }
   await c.query(TABLE_CREATION_SQL)
+}
+
+const getValidTxsForAddress = async (c, addr) => {
+  const result = await c.query(`
+    SELECT * from Transactions WHERE address='${addr}'
+    AND confirmations>=6
+    AND category IN ('receive', 'generate');
+  `)
+  return result.rows
 }
 
 const populateTransactionsTable = async (c, txs) => {
@@ -91,43 +85,63 @@ const populateTransactionsTable = async (c, txs) => {
   `)
 }
 
+const sumAmount = (acc, tx) => acc + parseFloat(tx.amount)
+
+const logDataForKnownUsers = async (c) => {
+  for (name of Object.keys(addresses)) {
+    const txs = await getValidTxsForAddress(client, addresses[name])
+    console.log(`Deposited for ${name}: count=${txs.length} sum=${txs.reduce(sumAmount, 0)}`)
+  }
+}
+
+const getValidTxsForUnknownUsers = async (c) => {
+  const formattedAddrs = Object.values(addresses).map(addr => `'${addr}'`).join(', ')
+  const result = await c.query(`
+    SELECT * from Transactions WHERE address NOT IN (${formattedAddrs})
+    AND confirmations>=6
+    AND category IN ('receive', 'generate');
+  `)
+  return result.rows
+}
+
+const logDataForUnknownUsers = async (c) => {
+  const txs = await getValidTxsForUnknownUsers(client)
+  console.log(`Deposited without reference: count=${txs.length} sum=${txs.reduce(sumAmount, 0)}`)
+}
+
+const logSmallestValidTx = async (c) => {
+  const amount = await c.query(`
+    SELECT MIN (amount) from Transactions
+    WHERE confirmations>=6
+    AND category IN ('receive', 'generate')
+    AND amount>0;
+  `)
+  console.log('Smallest valid deposit:', amount.rows[0].min)
+}
+
+const logLargestValidTx = async (c) => {
+  const amount = await c.query(`
+    SELECT MAX (amount) from Transactions
+    WHERE confirmations>=6
+    AND category IN ('receive', 'generate');
+  `)
+  console.log('Largest valid deposit:', amount.rows[0].max)
+}
+
+
 const run = async () => {
   try {
     await createTransactionsTable(client)
     await populateTransactionsTable(client, allTransactions)
-    const dbm3 = await client.query('SELECT txid from Transactions;')
-    const thing = dbm3.rows.map(t => { t.count = 1; return t }).reduce((acc, t) => { acc[t.txid] = (acc[t.txid] || 0) + t.count; return acc }, {})
-    console.log({ dupes: Object.keys(thing).filter(tid => thing[tid] > 1) })
+    await logDataForKnownUsers(client)
+    await logDataForUnknownUsers(client)
+    await logSmallestValidTx(client)
+    await logLargestValidTx(client)
+    await client.end()
   } catch (err) {
     console.log('Error running node process: ', err)
   }
 }
 
 connectToDb()
-
-
-
-
-
-
-
-// TODO: there exists an intersection of the transactions of length 12
-// (even after filtering the transactions for 6 confirmations)
-// so when adding to the db, I need to check if txid already exists
-// and update the transaction with new number of confirmations
-
-// const allTransactions = transactions1.transactions.concat(transactions2.transactions)
-
-
-// a crude way of seeing the actual balances
-// only works because dupe transactions are exactly the same
-
-// Smallest valid deposit: x.xxxxxxxx
-// Largest valid deposit: x.xxxxxxxx
-
-// const byConfirmations = (first, second) => {
-//   if (first.confirmations > second.confirmations) return -1
-//   if (second.confirmations > first.confirmations) return 1
-//   return 0
-// }
 

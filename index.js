@@ -12,18 +12,25 @@ const addresses = {
   'Spock': 'mvcyJMiAcSXKAEsQxbW9TYZ369rsMG6rVV',
 }
 
-const client = new Client()
+const connectionString = 'postgresql://user:password@postgres:5432/transactions'
 
-const sixConfs = tran => tran.confirmations >= 6
-const validCategory = tran => ['receive', 'generate'].includes(tran.category)
-const sumAmount = (acc, tran) => acc + tran.amount
-const isValidTransaction = tran => tran.confirmations >= 6 && ['receive', 'generate'].includes(tran.category)
+const sixConfs = tx => tx.confirmations >= 6
+const validCategory = tx => ['receive', 'generate'].includes(tx.category)
+const sumAmount = (acc, tx) => acc + tx.amount
+// can function composition be used to keep these ideas seperate then combined to 1 filtering function
+const isValidTransaction = tx => tx.confirmations >= 6 && ['receive', 'generate'].includes(tx.category)
 
+// could be worth it to build the full set of transactions to send to the DB and filter out dupes
+// by txid and vout before transacting with db
 const txIds1 = transactions1.transactions.filter(sixConfs).map(t => t.txid)
 const txIds2 = transactions2.transactions.filter(sixConfs).map(t => t.txid)
 
 const intersection = txIds2.filter(t => txIds1.includes(t))
+// console.log({ intersection })
+
+
 const allTransactions = transactions1.transactions.concat(transactions2.transactions.filter(t => !intersection.includes(t.txid)))
+// const allTransactions = transactions1.transactions.concat(transactions2.transactions)
 
 Object.keys(addresses).forEach(name => {
   const addr = addresses[name]
@@ -34,16 +41,69 @@ Object.keys(addresses).forEach(name => {
 
 console.log('Deposited without reference: count=n sum=x.xxxxxxxx')
 
+let client
+const connectToDb = async () => {
+  try {
+    client = new Client({ connectionString })
+    await client.connect()
+    run()
+  } catch (err) {
+    await client.end()
+    connectToDb()
+  }
+}
+
+const TABLE_CREATION_SQL = `CREATE TABLE Transactions (
+  id SERIAL PRIMARY KEY,
+  txid varchar(255),
+  address varchar(255),
+  category varchar(255),
+  confirmations integer,
+  amount numeric
+);
+`
+
+const createTransactionsTable = async (c) => {
+  const tableExists = await c.query(`SELECT to_regclass('public.Transactions');`)
+  if (tableExists.rows[0].to_regclass) {
+    await c.query('DROP Table Transactions;')
+  }
+  await c.query(TABLE_CREATION_SQL)
+}
+
+const populateTransactionsTable = async (c, txs) => {
+  const txValueChunks = txs.map(tx => `(
+    '${tx.txid}',
+    '${tx.address}',
+    '${tx.category}',
+    ${tx.confirmations},
+    ${tx.amount}
+  )`)
+
+  await c.query(`
+    INSERT INTO Transactions (
+      txid,
+      address,
+      category,
+      confirmations,
+      amount
+    ) Values ${txValueChunks.join(',')};
+  `)
+}
+
 const run = async () => {
   try {
-    await client.connect()
-    console.log('connected!')
+    await createTransactionsTable(client)
+    await populateTransactionsTable(client, allTransactions)
+    const dbm3 = await client.query('SELECT txid from Transactions;')
+    const thing = dbm3.rows.map(t => { t.count = 1; return t }).reduce((acc, t) => { acc[t.txid] = (acc[t.txid] || 0) + t.count; return acc }, {})
+    console.log({ dupes: Object.keys(thing).filter(tid => thing[tid] > 1) })
   } catch (err) {
     console.log('Error running node process: ', err)
   }
 }
 
-run()
+connectToDb()
 
 
 

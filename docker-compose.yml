@@ -18,3 +18,5 @@ services:
       POSTGRES_DB: transactions
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+    logging:
+      driver: none

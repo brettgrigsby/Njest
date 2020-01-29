@@ -1,13 +1,13 @@
 {
-  "name": "nodocker",
+  "name": "njest",
   "version": "1.0.0",
-  "description": "",
+  "description": "a btc transaction ingester",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
-  "author": "",
+  "author": "brettgrigsby",
   "license": "ISC",
   "dependencies": {
     "pg": "^7.17.1"

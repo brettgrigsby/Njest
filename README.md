@@ -10,11 +10,12 @@ other considerations I made to ensure transactions that contribute to a users ba
 
 #### Intersecting txids
 
-There are 12 intersecting txids from the 2 data sets which would make sense if the `listsinceblock`
+There are 12 intersecting txids from the 2 data sets, which would make sense if the `listsinceblock`
 intervals overlapped at all. All 12 of these transactions are completely identical which is odd,
-as you would assume that the `confimations` value would increase over time. This may be an arifact
-of manually created test data though. If confirmations did increase with subsequent calls, I would 
-add more logic to update the `confirmations` value in the db for detected intersections.
+as I would assume that the `confirmations` value would increase over time. This may be an arifact
+of manually created test data or misunderstanding on my part. If confirmations did increase with
+subsequent calls, I would add more logic to update the `confirmations` value in the db for detected
+intersections.
 
 txids:
 ```

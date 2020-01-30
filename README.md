@@ -45,7 +45,7 @@ txid:
 #### Coinbase Transactions
 
 There are 2 coinbase transactions, 1 'immature' and 1 'generate'. The sql queries to get
-valid transactions are all confined to `category IN ('recieve', 'generate')`.
+valid receive transactions are all confined to `category IN ('recieve', 'generate')`.
 
 
 #### Dust Limit
@@ -56,5 +56,5 @@ time and 'unspendable' outputs may rise from the dust at some point in the futur
 
 ### Notes
 
-- There is no Dockerfile because I did not require one to satify the requirements.
+- There's no Dockerfile since docker-compose is cool like that.
 - I disabled logging for the postgres service

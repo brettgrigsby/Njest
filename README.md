@@ -57,5 +57,4 @@ time and 'unspendable' outputs may rise from the dust at some point in the futur
 
 ### Notes
 
-- There's no Dockerfile since docker-compose is cool like that.
 - I disabled logging for the postgres service

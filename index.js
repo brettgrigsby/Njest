@@ -46,7 +46,6 @@ const logDataForUnknownUsers = async () => {
 }
 
 const logSmallestValidReceive = async () => {
-  getSmallestValidReceive(client)
   const smallest = await getSmallestValidReceive(client)
   console.log('Smallest valid deposit:', smallest)
 }

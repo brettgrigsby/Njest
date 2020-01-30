@@ -57,4 +57,6 @@ time and 'unspendable' outputs may rise from the dust at some point in the futur
 
 ### Notes
 
-- I disabled logging for the postgres service
+- I disabled logging for the postgres service.
+- The github repo is private, but I'm happy to invite anyone who would like access.
+- The requirements had `x.xxxxxxxx` as the placeholder value for answers, but I left values at full precision.

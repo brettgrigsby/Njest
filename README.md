@@ -51,8 +51,8 @@ valid receive transactions are all confined to `category IN ('recieve', 'generat
 
 #### Dust Limit
 
-There are a few transactions in the data set that are really small. 1 tx.amout `<` 1000 sats.
-I chose not to filter transactions for any minimum amount as the dust limit will fluctuate over
+There are a few transactions in the data set that are really small. 1 of the `tx.amout`s is `<` 1000
+sats. I chose not to filter transactions for any minimum amount as the dust limit will fluctuate over
 time and 'unspendable' outputs may rise from the dust at some point in the future. 
 
 ### Notes

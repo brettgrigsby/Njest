@@ -2,6 +2,9 @@
   "name": "njest",
   "version": "1.0.0",
   "description": "a btc transaction ingester",
+  "repository": {
+    "private": true
+  }
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

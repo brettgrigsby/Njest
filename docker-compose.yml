@@ -3,7 +3,7 @@ version: "3"
 services:
   node:
     image: "node:13-alpine"
-    container_name: "node"
+    container_name: "make_it_so"
     working_dir: /home/node/app
     volumes:
       - ./:/home/node/app
